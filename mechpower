@@ -1,11 +1,29 @@
-def motorW(v, rover):
-    """Motor shaft speed [rad/s] for rover velocity v [m/s]."""
+
+def mechpower(v, rover):
+    """
+    Calculate mechanical power output of one DC motor.
+
+    Inputs:
+        v: rover velocity [m/s], scalar or 1D numpy array
+        rover: rover dictionary
+
+    Output:
+        P: mechanical power [W]
+    """
     if not _is_scalar_or_vector(v):
-        raise Exception('v must be a scalar or a 1D numpy array.')
+        raise Exception('v must be a scalar or 1D numpy array.')
     _require_dict(rover, 'rover')
 
-    wa = rover['wheel_assembly']
-    Ng = get_gear_ratio(wa['speed_reducer'])
-    r = wa['wheel']['radius']
-    w = np.asarray(v, dtype=float) / r * Ng
-    return _finish(w, v)
+    wheel = rover['wheel_assembly']['wheel']
+    motor = rover['wheel_assembly']['motor']
+    reducer = rover['wheel_assembly']['speed_reducer']
+
+    Ng = get_gear_ratio(reducer)
+
+    omega = np.asarray(v, dtype=float) * Ng / wheel['radius']
+
+    tau = tau_dcmotor(omega, motor)
+
+    P = tau * omega
+
+    return _finish(P, v)
