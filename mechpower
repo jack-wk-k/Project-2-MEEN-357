@@ -1,1 +1,11 @@
+def motorW(v, rover):
+    """Motor shaft speed [rad/s] for rover velocity v [m/s]."""
+    if not _is_scalar_or_vector(v):
+        raise Exception('v must be a scalar or a 1D numpy array.')
+    _require_dict(rover, 'rover')
 
+    wa = rover['wheel_assembly']
+    Ng = get_gear_ratio(wa['speed_reducer'])
+    r = wa['wheel']['radius']
+    w = np.asarray(v, dtype=float) / r * Ng
+    return _finish(w, v)
