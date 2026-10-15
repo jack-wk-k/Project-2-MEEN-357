@@ -1,29 +1,76 @@
 
+#%% TASK 4: mechpower
+
+def tau_dcmotor(omega, motor):
+    """
+    Calculate DC motor torque from angular velocity.
+    """
+
+    if type(motor) != dict:
+        raise Exception('Motor must be a dictionary')
+
+    if type(omega) == np.ndarray:
+        if len(omega.shape) != 1:
+            raise Exception('omega must be a 1D array')
+    elif type(omega) != int and type(omega) != float:
+        raise Exception('omega must be a scalar or numpy array')
+
+    # Motor parameters
+    tau_stall = motor['torque_stall']
+    tau_noload = motor['torque_noload']
+    omega_noload = motor['speed_noload']
+
+    # Calculate motor torque
+    omega = np.asarray(omega, dtype=float)
+
+    tau = tau_stall - (
+        (tau_stall - tau_noload) / omega_noload
+    ) * omega
+
+    # Torque is zero above no-load speed
+    tau = np.where(omega >= omega_noload, 0, tau)
+
+    # Return scalar or array
+    if tau.ndim == 0:
+        return float(tau)
+    else:
+        return tau
+
+
 def mechpower(v, rover):
     """
-    Calculate mechanical power output of one DC motor.
+    Calculate instantaneous mechanical power
+    output of one DC motor in Watts.
 
     Inputs:
-        v: rover velocity [m/s], scalar or 1D numpy array
+        v: rover velocity [m/s]
         rover: rover dictionary
 
     Output:
         P: mechanical power [W]
     """
-    if not _is_scalar_or_vector(v):
-        raise Exception('v must be a scalar or 1D numpy array.')
-    _require_dict(rover, 'rover')
 
-    wheel = rover['wheel_assembly']['wheel']
+    # Check rover input
+    if type(rover) != dict:
+        raise Exception('Second input must be a dictionary')
+
+    # Check velocity input
+    if type(v) == np.ndarray:
+        if len(v.shape) != 1:
+            raise Exception('v must be a 1D array')
+    elif type(v) != int and type(v) != float:
+        raise Exception('First input must be a scalar or numpy array')
+
+    # Calculate motor angular velocity
+    omega = motorW(v, rover)
+
+    # Get motor information
     motor = rover['wheel_assembly']['motor']
-    reducer = rover['wheel_assembly']['speed_reducer']
 
-    Ng = get_gear_ratio(reducer)
-
-    omega = np.asarray(v, dtype=float) * Ng / wheel['radius']
-
+    # Calculate motor torque
     tau = tau_dcmotor(omega, motor)
 
+    # Calculate mechanical power
     P = tau * omega
 
-    return _finish(P, v)
+    return P
